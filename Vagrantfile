@@ -21,19 +21,19 @@ Vagrant.configure("2") do |config|
         end
     end
   
-    # # NFS server for persistent volume provisioning
-    # config.vm.define "nfsserver-0" do |c|
-    #     c.vm.hostname = "nfsserver-0"
-    #     c.vm.network "private_network", ip: "192.168.199.50"
+    # NFS server for persistent volume provisioning
+    config.vm.define "nfsserver-0" do |c|
+        c.vm.hostname = "nfsserver-0"
+        c.vm.network "private_network", ip: "192.168.199.50"
   
-    #     c.vm.provision :shell, :path => "scripts/vagrant-setup-nfsserver.bash"    
-    #     c.vm.provider "virtualbox" do |vb|
-    #         vb.memory = 256
-    #         vb.cpus = 1
-    #     end        
-    # end
+        c.vm.provision :shell, :path => "scripts/vagrant-setup-nfsserver.bash"    
+        c.vm.provider "virtualbox" do |vb|
+            vb.memory = 256
+            vb.cpus = 1
+        end        
+    end
 
-    # master
+    # Master
     (0..2).each do |n|
       config.vm.define "controller-#{n}" do |c|
           c.vm.hostname = "controller-#{n}"
@@ -46,7 +46,7 @@ Vagrant.configure("2") do |config|
       end
     end
   
-    # worker
+    # Worker
     (0..2).each do |n|
       config.vm.define "worker-#{n}" do |c|
           c.vm.hostname = "worker-#{n}"
@@ -57,13 +57,13 @@ Vagrant.configure("2") do |config|
       end
     end
   
+    # Ingress Controller
     # 192.168.199.30 will be the ingress IP, acc
-    # curl -H "Host: app.domain" 192.168.199.30
-    # config.vm.define "traefik-0" do |c|
-    #     c.vm.hostname = "traefik-0"
-    #     c.vm.network "private_network", ip: "192.168.199.30"
+    config.vm.define "traefik-0" do |c|
+        c.vm.hostname = "traefik-0"
+        c.vm.network "private_network", ip: "192.168.199.30"
   
-    #     c.vm.provision :shell, :path => "scripts/vagrant-setup-routes.bash"
-    # end
+        c.vm.provision :shell, :path => "scripts/vagrant-setup-routes.bash"
+    end
   end
   

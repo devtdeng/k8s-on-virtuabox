@@ -8,22 +8,12 @@ pushd "${dir}/../"
 trap 'popd' EXIT
 
 # ./scripts/distclean
-echo "192.168.199.40 api.k8s.virtualbox" | sudo tee -a /etc/hosts
 vagrant up
-# ./scripts/generate-certs
-# ./scripts/generate-kubeconfig-kube-proxy
-# ./scripts/generate-kubeconfig-worker
-# ./scripts/generate-cni-config
-# ./scripts/generate-service-files
 
 ./scripts/setup-master
 ./scripts/setup-worker
-# ./scripts/setup-traefik
+./scripts/setup-traefik
 
-# ./scripts/setup-kubelet-api-cluster-role
-# ./scripts/configure-kubectl-on-host
+echo "192.168.199.40 api.k8s.virtualbox" | sudo tee -a /etc/hosts
 echo -e "\033[1mFinished. Cluster should be healthy and soon in state ready:\033[0m"
 echo -e "\033[1mapi.k8s.virtualbox is load balancer of masters\033[0m"
-# kubectl get componentstatuses
-# kubectl get nodes
-

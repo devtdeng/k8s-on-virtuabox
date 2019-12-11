@@ -1,4 +1,7 @@
 #!/bin/bash
 
+# TBD: clean up all VMs
+
 # delete all VMs
 vagrant destroy -f 
+
