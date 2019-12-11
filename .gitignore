@@ -1,0 +1,6 @@
+.idea/
+.*.swp
+*console.log
+.vagrant/
+note.txt
+.vagrant

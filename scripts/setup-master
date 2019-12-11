@@ -1,0 +1,80 @@
+#!/bin/bash
+
+set -euo pipefail
+
+readonly dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# shellcheck source=versions.bash
+# source "${dir}/versions.bash"
+
+pushd "${dir}/../"
+trap 'popd' EXIT
+
+# Set up external ETCD cluster (on controller VMs)
+# Steps at https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/setup-ha-etcd-with-kubeadm/
+for i in {0..2}; do
+cat <<EOF | vagrant ssh "controller-${i}" -- sudo bash
+
+cp /home/vagrant/config/20-etcd-service-manager.conf /etc/systemd/system/kubelet.service.d/
+cp -r /home/vagrant/config/pki /etc/kubernetes/
+
+# generate etcd certificates
+kubeadm init phase certs etcd-server --config="/home/vagrant/config/controller-${i}-kubeadmcfg-etcd.yaml"
+kubeadm init phase certs etcd-peer --config="/home/vagrant/config/controller-${i}-kubeadmcfg-etcd.yaml"
+kubeadm init phase certs etcd-healthcheck-client --config="/home/vagrant/config/controller-${i}-kubeadmcfg-etcd.yaml"
+kubeadm init phase certs apiserver-etcd-client --config="/home/vagrant/config/controller-${i}-kubeadmcfg-etcd.yaml"
+
+# generate /etc/kubernetes/manifests/etcd.yaml
+kubeadm init phase etcd local --config="/home/vagrant/config/controller-${i}-kubeadmcfg-etcd.yaml"
+
+# reload service file and restart kubelet service
+systemctl daemon-reload && systemctl restart kubelet
+
+# once etcd cluster stats up remove etcd service file from kubelet service as they conflict
+rm /etc/systemd/system/kubelet.service.d/20-etcd-service-manager.conf
+EOF
+done
+
+# Set up first master node, after this step, master node will be at READY state, system pods will be running
+cat <<EOF | vagrant ssh "controller-0" -- sudo bash
+echo "Initializing master node 0"
+kubeadm init --ignore-preflight-errors=all --skip-phases=etcd --upload-certs --config="/home/vagrant/config/controller-0-kubeadm-config.yaml" 
+mkdir -p /home/vagrant/.kube && cp -i /etc/kubernetes/admin.conf /home/vagrant/.kube/config && chown $(id -u):$(id -g) /home/vagrant/.kube/config
+
+# Apply CNI plugin
+kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+
+# print out join command for other nodes (master or worker) to join 
+join_command=$(sudo kubeadm token create --print-join-command 2>&1 | tail -n 1)
+certificate_key=$(sudo kubeadm init phase upload-certs --upload-certs --config="/home/vagrant/config/controller-0-kubeadm-config.yaml" 2>&1 | tail -n 1)
+echo $join_command --ignore-preflight-errors > worker_join_command.sh
+echo $join_command --certificate-key $certificate_key  --control-plane --ignore-preflight-errors=all > master_join_command.sh
+chmod +x master_join_command.sh worker_join_command.sh
+
+# required for setting up password less ssh between guest VMs
+sed -i "/^[^#]*PasswordAuthentication[[:space:]]no/c\PasswordAuthentication yes" /etc/ssh/sshd_config
+service sshd restart
+EOF
+
+# Join controller-1/2 as master nodes (with ----control-plane option )
+# At this step, `kubelet join` will download secrets from secret/kubeadm-certs in kube-system namespace
+for i in {1..2}; do
+cat <<EOF | vagrant ssh "controller-${i}" -- sudo bash
+echo "Initializing master node ${i}"
+apt-get install -y sshpass
+sshpass -p "vagrant" scp -o StrictHostKeyChecking=no vagrant@controller-0:/home/vagrant/master_join_command.sh /home/vagrant/
+sh ./master_join_command.sh
+
+# sample master join command with --certificate-key
+# sudo kubeadm join api.k8s.virtualbox:6443 --token vppu5n.s5gt880t2z8uhk4l \
+#  --discovery-token-ca-cert-hash sha256:3c41911bb6df20443499c505eda91020542490e9a1459098be2ae30c0a0c9aa9 \
+#  --certificate-key 7c71f326b88f7a3df3ee5af6ceb973feee493d80879c5579dc2f5e0dc5377413 \
+#  --control-plane --ignore-preflight-errors=all
+EOF
+done
+
+# `kubectl get nodes` should return 3 Ready master nodes at here
+
+
+
+

@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -euo pipefail
+
+readonly dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# shellcheck source=versions.bash
+# source "${dir}/versions.bash"
+
+pushd "${dir}/../"
+trap 'popd' EXIT
+
+# Add workder nodes
+# Steps at https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/
+
+for i in {0..2}; do
+cat <<EOF | vagrant ssh "worker-${i}" -- sudo bash
+echo "Initializing worker node ${i}"
+apt-get install -y sshpass
+sshpass -p "vagrant" scp -o StrictHostKeyChecking=no vagrant@controller-0:/home/vagrant/worker_join_command.sh /home/vagrant/
+sh ./worker_join_command.sh
+
+# sample worker join command
+# sudo kubeadm join api.k8s.virtualbox:6443 --token vppu5n.s5gt880t2z8uhk4l \
+#  --discovery-token-ca-cert-hash sha256:3c41911bb6df20443499c505eda91020542490e9a1459098be2ae30c0a0c9aa9
+EOF
+done
