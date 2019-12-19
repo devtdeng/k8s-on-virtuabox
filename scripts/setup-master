@@ -41,17 +41,19 @@ echo "Initializing master node 0"
 rm /etc/systemd/system/kubelet.service.d/20-etcd-service-manager.conf
 systemctl daemon-reload && systemctl restart kubelet
 
-# it's not mentioned at https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#pod-network, 
-# but 
-kubeadm init --ignore-preflight-errors=all --skip-phases=etcd --upload-certs --config="/home/vagrant/config/controller-0-kubeadm-config.yaml" 
-mkdir -p /home/vagrant/.kube && cp -f /etc/kubernetes/admin.conf /home/vagrant/.kube/config && chown $(id -u):$(id -g) /home/vagrant/.kube/config
+# specify advertiseAddress otherwise the default enp0s3 address 10.0.2.15/24 will be used 
+IP_ADDR=`ifconfig enp0s8 | grep Mask | awk '{print $2}'| cut -f2 -d:`
+printf "localAPIEndpoint:\n  advertiseAddress: $IP_ADDR" >> /home/vagrant/config/kubeadm-config.yaml
+
+kubeadm init --ignore-preflight-errors=all --skip-phases=etcd --upload-certs --config="/home/vagrant/config/kubeadm-config.yaml"
+mkdir -p /home/vagrant/.kube && cp -f /etc/kubernetes/admin.conf /home/vagrant/.kube/config && chown vagrant:vagrant /home/vagrant/.kube/config
 
 # apply calico network plugin, pod cidr should be configured as "192.168.0.0/16"
 kubectl apply -f https://docs.projectcalico.org/v3.8/manifests/calico.yaml
 
 # generate master/worker join command 
 kubeadm token create --print-join-command 2>&1 | tail -n 1 | sed 's/$/ --ignore-preflight-errors=all/' > worker_join_command.sh
-kubeadm init phase upload-certs --upload-certs --config="/home/vagrant/config/controller-0-kubeadm-config.yaml" 2>&1 | tail -n 1 | sed 's/^/ --control-plane --certificate-key /' > /tmp/certificate-key
+kubeadm init phase upload-certs --upload-certs --config="/home/vagrant/config/kubeadm-config.yaml" 2>&1 | tail -n 1 | sed 's/^/ --control-plane --certificate-key /' > /tmp/certificate-key
 cat worker_join_command.sh /tmp/certificate-key | tr -d "\n" > master_join_command.sh
 chmod +x master_join_command.sh worker_join_command.sh
 
@@ -70,17 +72,20 @@ systemctl daemon-reload && systemctl restart kubelet
 
 apt-get install -y sshpass
 sshpass -p "vagrant" scp -o StrictHostKeyChecking=no vagrant@controller-0:/home/vagrant/master_join_command.sh /home/vagrant/
+
+ifconfig enp0s8 | grep Mask | awk '{print $2}'| cut -f2 -d: | sed 's/^/ --apiserver-advertise-address /' > /tmp/advertis_address
+cat worker_join_command.sh /tmp/advertis_address | tr -d "\n" > master_join_command.sh
 sh ./master_join_command.sh
 
 # sample master join command with --certificate-key
 # kubeadm join api.k8s.virtualbox:6443 --token vppu5n.s5gt880t2z8uhk4l \
 #  --discovery-token-ca-cert-hash sha256:3c41911bb6df20443499c505eda91020542490e9a1459098be2ae30c0a0c9aa9 \
 #  --certificate-key 7c71f326b88f7a3df3ee5af6ceb973feee493d80879c5579dc2f5e0dc5377413 \
-#  --control-plane --ignore-preflight-errors=all
+#  --control-plane --ignore-preflight-errors=all |
+#  --apiserver-advertise-address 192.168.199.11
 EOF
 done
 
-# Check master nodes stateus
 cat <<EOF | vagrant ssh "controller-0" -- sudo bash
 kubectl get nodes
 kubectl get pods --all-namespaces
