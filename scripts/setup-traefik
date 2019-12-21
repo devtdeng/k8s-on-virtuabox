@@ -7,11 +7,10 @@ readonly dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 pushd "${dir}/../"
 trap 'popd' EXIT
 
-vagrant up traefik-0
+cat <<EOF | vagrant ssh "master-0" -- sudo bash
 
 kubectl --namespace=kube-system create serviceaccount traefik
-
-cat <<EOF | vagrant ssh "controller-0" -- kubectl apply -f -
+kubectl apply -f - 
 
 ---
 kind: ClusterRole
@@ -59,7 +58,7 @@ cat <<EOF | vagrant ssh "traefik-0" -- sudo bash
 set -euo pipefail
 
 mkdir -p /etc/kubernetes
-cp /vagrant/config/pki/ca.pem /etc/kubernetes/
+cp /vagrant/config/pki/ca.crt /etc/kubernetes/
 
 cp /vagrant/download/traefik /usr/local/bin/
 setcap cap_net_bind_service=+ep /usr/local/bin/traefik
@@ -69,9 +68,9 @@ cat >/etc/traefik.toml <<TRAEFIK_CONFIG
 logLevel = "INFO"
 
 [kubernetes]
-endpoint = "https://192.168.199.40:6443"
+endpoint = "https://api.k8s.virtualbox:6443"
 token = "$(kubectl --namespace kube-system get secrets $(kubectl --namespace kube-system get serviceaccount traefik -o jsonpath='{.secrets[].name}') -o jsonpath='{.data.token}' | base64 --decode)"
-certAuthFilePath = "/etc/kubernetes/ca.pem"
+certAuthFilePath = "/etc/kubernetes/ca.crt"
 
 [accessLog]
 

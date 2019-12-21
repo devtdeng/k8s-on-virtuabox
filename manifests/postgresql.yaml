@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cm-psql
+  name: psql
 data:
   POSTGRES_DB: db
   POSTGRES_USER: user
@@ -13,7 +13,7 @@ data:
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: pv-psql
+  name: psql
   labels:
     app: psql
 spec:
@@ -30,7 +30,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: pvc-psql
+  name: psql
 spec:
   selector:
     matchLabels:  #Select a volume with this labels
@@ -45,7 +45,7 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: deployment-psql
+  name: psql
   labels: 
     app: psql 
 spec:
@@ -68,20 +68,20 @@ spec:
             - containerPort: 5432 
           envFrom:
             - configMapRef:
-                name: cm-psql         
+                name: psql         
           volumeMounts:
             - mountPath: /var/lib/postgresql/data
               name: pgdatavol
       volumes:
         - name: pgdatavol
           persistentVolumeClaim:
-            claimName: pvc-psql
+            claimName: psql
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: svc-psql
+  name: psql
 spec:
   type: NodePort
   selector:

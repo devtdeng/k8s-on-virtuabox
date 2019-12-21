@@ -13,7 +13,10 @@ trap 'popd' EXIT
 for i in {0..2}; do
 cat <<EOF | vagrant ssh "worker-${i}" -- sudo bash
 echo "Initializing worker node ${i}"
-apt-get update && apt-get install -y sshpass
+apt-get update
+apt-get install -y sshpass
+apt-get install -y socat libgpgme11 nfs-common
+
 sshpass -p "vagrant" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null vagrant@master-0:/home/vagrant/worker_join_command.sh .
 sh ./worker_join_command.sh
 EOF
