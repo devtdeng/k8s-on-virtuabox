@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -euo pipefail
+
+readonly dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+readonly binary_format=amd64
+if [[ "$OSTYPE" == "linux-gnu" ]]; then
+  readonly binary_platform=linux
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+  readonly binary_platform=darwin
+fi
+
+source "${dir}/versions.bash"
+
+if [ ! -f /usr/local/bin/kubectl ]; then
+  echo "Installing kubectl tool "
+
+  curl -ssL -o /tmp/kubectl "https://storage.googleapis.com/kubernetes-release/release/${K8S_VERSION}/bin/${binary_platform}/${binary_format}/kubectl"
+  chmod +x /tmp/kubectl
+  sudo mv -v /tmp/kubectl /usr/local/bin/
+fi

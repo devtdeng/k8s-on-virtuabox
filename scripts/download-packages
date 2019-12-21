@@ -1,0 +1,39 @@
+#!/bin/bash
+
+set -euo pipefail
+
+readonly dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+pushd "${dir}/../download/"
+trap 'popd' EXIT
+
+echo "Downloading ..."
+
+# shellcheck source=versions.bash
+source "${dir}/versions.bash"
+
+# Doc link
+# kubernetes: https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#installing-runtime
+# docker: https://docs.docker.com/install/linux/docker-ce/ubuntu/#install-from-a-package
+
+# Download CNI plugins (required for most pod network)
+curl -L -o cni-plugins.tgz "https://github.com/containernetworking/plugins/releases/download/${CNI_VERSION}/cni-plugins-linux-amd64-${CNI_VERSION}.tgz"
+
+# Download crictl (required for kubeadm / Kubelet Container Runtime Interface (CRI))
+curl -L -o crictl.tgz "https://github.com/kubernetes-sigs/cri-tools/releases/download/${CRICTL_VERSION}/crictl-${CRICTL_VERSION}-linux-amd64.tar.gz" 
+
+# Download kubeadm, kubelet, kubectl and add a kubelet systemd service:
+curl -L --remote-name-all "https://storage.googleapis.com/kubernetes-release/release/${K8S_VERSION}/bin/linux/amd64/{kubeadm,kubelet,kubectl}"
+curl -sSLO "https://raw.githubusercontent.com/kubernetes/kubernetes/${K8S_VERSION}/build/debs/kubelet.service"
+curl -sSLO "https://raw.githubusercontent.com/kubernetes/kubernetes/${K8S_VERSION}/build/debs/10-kubeadm.conf"
+
+# Download Docker
+curl -sSL -o docker-ce.deb "https://download.docker.com/linux/ubuntu/dists/xenial/pool/stable/amd64/docker-ce_${DOCKER_VERSION}~ce~3-0~ubuntu_amd64.deb" 
+
+# Download ETCD Cluster
+# curl -sSLO "https://github.com/coreos/etcd/releases/download/${ETCD_VERSION}/etcd-${ETCD_VERSION}-linux-amd64.tar.gz"
+# etcd will be installed by kubeadmin, no need to download
+
+# Download traefik
+curl -sSL -o traefik "https://github.com/containous/traefik/releases/download/${TRAEFIK_VERSION}/traefik_linux-amd64"
+chmod +x traefik

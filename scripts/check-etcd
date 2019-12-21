@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -euo pipefail
+
+readonly dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+source "${dir}/versions.bash"
+
+pushd "${dir}/../"
+trap 'popd' EXIT
+
+cat <<EOF | vagrant ssh master-0 -- sudo bash
+while true; do \
+docker run --rm -i \
+--net host \
+-v /etc/kubernetes:/etc/kubernetes quay.io/coreos/etcd:v3.3.9 etcdctl \
+--cert-file /etc/kubernetes/pki/etcd/peer.crt \
+--key-file /etc/kubernetes/pki/etcd/peer.key \
+--ca-file /etc/kubernetes/pki/etcd/ca.crt \
+--endpoints https://master-0:2379 cluster-health \
+| grep 'cluster is healthy' && break; \
+echo "Waiting on etcd cluster... "
+sleep 15; \
+done
+EOF

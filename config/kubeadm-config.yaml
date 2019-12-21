@@ -3,9 +3,6 @@ apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
 kubernetesVersion: stable
 controlPlaneEndpoint: "api.k8s.virtualbox:6443"
-api:
-  advertiseAddress: ""
-  bindPort: 
 networking:
   podSubnet: "192.168.0.0/16"
 etcd:
@@ -21,4 +18,4 @@ etcd:
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
 localAPIEndpoint:
-  advertiseAddress: 192.168.199.10
+  advertiseAddress: LOCAL_IP_ADDRESS

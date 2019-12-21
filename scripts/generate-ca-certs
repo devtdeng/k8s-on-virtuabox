@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# TBD - this does not work correctly on OSX, CA:true has to be sepcified in config file instead of -extensions
+set -euo pipefail
+
+readonly dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+pushd "${dir}/../config"
+trap 'popd' EXIT
+
+mkdir -p pki/etcd
+
+#k8s CA
+openssl req -new -x509 -sha256 -newkey rsa:2048 -nodes -keyout pki/ca.key -days 730 -out pki/ca.crt  -extension v3_ca -subj '/CN=k8s-ca'
+
+#etcd CA 
+openssl req -new -x509 -sha256 -newkey rsa:2048 -nodes -keyout pki/etcd/ca.key -days 730 -out pki/etcd/ca.crt -extension v3_ca -subj '/CN=etcd-ca' 
