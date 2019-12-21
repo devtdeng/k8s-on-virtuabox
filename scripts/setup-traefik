@@ -59,9 +59,9 @@ cat <<EOF | vagrant ssh "traefik-0" -- sudo bash
 set -euo pipefail
 
 mkdir -p /etc/kubernetes
-cp /vagrant/certificates/ca.pem /etc/kubernetes/
+cp /vagrant/config/pki/ca.pem /etc/kubernetes/
 
-cp /vagrant/tools/traefik /usr/local/bin/
+cp /vagrant/download/traefik /usr/local/bin/
 setcap cap_net_bind_service=+ep /usr/local/bin/traefik
 
 cat >/etc/traefik.toml <<TRAEFIK_CONFIG

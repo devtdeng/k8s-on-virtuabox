@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -euo pipefail
+
+readonly dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "Started smoke-test" 
+
+echo "Test1: deploy nginx with ingress controller" 
+kubectl apply -f manifests/nginx-ingress.yaml
+
+echo "Test2: deploy postgresql with persistent volume" 
+kubectl apply -f manifests/postgresql.yaml
+
+# TBD clean up stuffs created by smoke-test

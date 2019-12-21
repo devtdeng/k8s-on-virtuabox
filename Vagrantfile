@@ -8,7 +8,7 @@ Vagrant.configure("2") do |config|
       vb.customize ["modifyvm", :id, "--audio", "none"]
     end
   
-    # must be at the top
+    # LB for master nodes, must be at the top
     config.vm.define "lb-0" do |c|
         c.vm.hostname = "lb-0"
         c.vm.network "private_network", ip: "192.168.199.40"
@@ -34,8 +34,8 @@ Vagrant.configure("2") do |config|
       end
     end
   
-    Worker
-    (0..0).each do |n|
+    # Worker
+    (0..2).each do |n|
       config.vm.define "worker-#{n}" do |c|
           c.vm.hostname = "worker-#{n}"
           c.vm.network "private_network", ip: "192.168.199.2#{n}"
@@ -47,26 +47,23 @@ Vagrant.configure("2") do |config|
   
 
     # NFS server for persistent volume provisioning
-    # config.vm.define "nfsserver-0" do |c|
-    #   c.vm.hostname = "nfsserver-0"
-    #   c.vm.network "private_network", ip: "192.168.199.50"
+    config.vm.define "nfsserver-0" do |c|
+      c.vm.hostname = "nfsserver-0"
+      c.vm.network "private_network", ip: "192.168.199.50"
 
-    #   c.vm.provision :shell, :path => "scripts/vagrant-setup-nfsserver.bash"    
-    #   c.vm.provider "virtualbox" do |vb|
-    #       vb.memory = 256
-    #       vb.cpus = 1
-    #   end        
-    # end
+      c.vm.provision :shell, :path => "scripts/vagrant-setup-nfsserver.bash"    
+      c.vm.provider "virtualbox" do |vb|
+          vb.memory = 256
+          vb.cpus = 1
+      end        
+    end
 
-    # Ingress master
+    # Ingress 
     # 192.168.199.30 will be the ingress IP, acc
-    # config.vm.define "traefik-0" do |c|
-    #     c.vm.hostname = "traefik-0"
-    #     c.vm.network "private_network", ip: "192.168.199.30"
-  
-    #     # c.vm.provision "file", source: "config/pki/ca.crt", destination: "/home/vagrant/config"
-
-    #     c.vm.provision :shell, :path => "scripts/vagrant-setup-routes.bash"
-    # end
+    config.vm.define "traefik-0" do |c|
+        c.vm.hostname = "traefik-0"
+        c.vm.network "private_network", ip: "192.168.199.30"
+        c.vm.provision :shell, :path => "scripts/vagrant-setup-routes.bash"
+    end
   end
   

@@ -7,15 +7,17 @@ readonly dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 pushd "${dir}/../"
 trap 'popd' EXIT
 
-./scripts/distclean
+# ./scripts/distclean
 # ./scripts/download-packages
-./scripts/install-tools
+
+# This does not work correctly on OSX, CA:true has to be sepcified in config file instead of -extensions
+# because openssl utility on OSX doesn't support -extensions well. 
+# ./scripts/generate-ca-certs  
+
 vagrant up
 ./scripts/check-etcd
 ./scripts/setup-master
 ./scripts/setup-worker
-# ./scripts/setup-traefik
-
-# echo "192.168.199.40 api.k8s.virtualbox" | sudo tee -a /etc/hosts
-# echo -e "\033[1mFinished. Cluster should be healthy and soon in state ready:\033[0m"
-# echo -e "\033[1mapi.k8s.virtualbox is load balancer of masters\033[0m"
+./scripts/setup-traefik
+./scripts/check-cluster
+./scripts/smoke-test

@@ -14,7 +14,7 @@ for i in {0..2}; do
 cat <<EOF | vagrant ssh "worker-${i}" -- sudo bash
 echo "Initializing worker node ${i}"
 apt-get update && apt-get install -y sshpass
-sshpass -p "vagrant" scp -o StrictHostKeyChecking=no vagrant@controller-0:/home/vagrant/worker_join_command.sh /home/vagrant/
+sshpass -p "vagrant" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null vagrant@master-0:/home/vagrant/worker_join_command.sh .
 sh ./worker_join_command.sh
 EOF
 done

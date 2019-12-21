@@ -11,6 +11,7 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
   readonly binary_platform=darwin
 fi
 
+# Install kubectl on host machine if it doesn't exist
 source "${dir}/versions.bash"
 
 if [ ! -f /usr/local/bin/kubectl ]; then
@@ -20,3 +21,13 @@ if [ ! -f /usr/local/bin/kubectl ]; then
   chmod +x /tmp/kubectl
   sudo mv -v /tmp/kubectl /usr/local/bin/
 fi
+
+vagrant ssh master-0 -c "sudo cat /etc/kubernetes/admin.conf" > ~/.kube/config
+
+echo "192.168.199.40 api.k8s.virtualbox" | sudo tee -a /etc/hosts
+echo -e "\033[1m======================================================\033[0m"
+echo -e "\033[1mFinished. Cluster should be healthy and soon in state ready:\033[0m"
+echo -e "\033[1mapi.k8s.virtualbox is load balancer of masters\033[0m"
+
+kubectl get nodes
+kubectl -n kube-system get all

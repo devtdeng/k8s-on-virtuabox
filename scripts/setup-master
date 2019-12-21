@@ -18,7 +18,7 @@ systemctl daemon-reload && systemctl restart kubelet
 # specify advertiseAddress otherwise the default enp0s3 address 10.0.2.15/24 will be used 
 ifconfig enp0s8 | grep 'inet addr' | cut -d ' ' -f12 | cut -d ':' -f 2 | sed 's/^/  advertiseAddress: /' > /tmp/advertise_address
 head -n -1 /vagrant/config/kubeadm-config.yaml > /tmp/kubeadm-config.yaml
-cat /tmp/advertise_address >> tmp/kubeadm-config.yaml
+cat /tmp/advertise_address >> /tmp/kubeadm-config.yaml
 
 kubeadm init --ignore-preflight-errors=all --skip-phases=etcd --upload-certs --config="/tmp/kubeadm-config.yaml"
 mkdir -p /home/vagrant/.kube && cp -f /etc/kubernetes/admin.conf /home/vagrant/.kube/config && chown vagrant:vagrant /home/vagrant/.kube/config
@@ -30,6 +30,7 @@ kubectl apply -f https://docs.projectcalico.org/v3.8/manifests/calico.yaml
 kubeadm token create --print-join-command 2>&1 | tail -n 1 | sed 's/$/ --ignore-preflight-errors=all/' > worker_join_command.sh
 kubeadm init phase upload-certs --upload-certs --config="/tmp/kubeadm-config.yaml" 2>&1 | tail -n 1 | sed 's/^/ --control-plane --certificate-key /' > /tmp/certificate-key
 cat worker_join_command.sh /tmp/certificate-key | tr -d "\n" > master_join_command.sh
+
 chmod +x master_join_command.sh worker_join_command.sh
 
 # set up password for ssh between guest VMs
@@ -46,11 +47,10 @@ rm /etc/systemd/system/kubelet.service.d/20-etcd-service-manager.conf
 systemctl daemon-reload && systemctl restart kubelet
 
 apt-get install -y sshpass
-sshpass -p "vagrant" scp -o StrictHostKeyChecking=no vagrant@master-0:/home/vagrant/master_join_command.sh /home/vagrant/
+sshpass -p "vagrant" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null vagrant@master-0:/home/vagrant/master_join_command.sh .
 
 ifconfig enp0s8 | grep 'inet addr' | cut -d ' ' -f12 | cut -d ':' -f 2 | sed 's/^/ --apiserver-advertise-address /' > /tmp/advertise_address
-cat master_join_command.sh /tmp/advertis_address | tr -d "\n" > master_join_command.sh
-sh ./master_join_command.sh
+cat master_join_command.sh /tmp/advertise_address | tr -d "\n" | sh
 EOF
 done
 
