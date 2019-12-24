@@ -5,6 +5,13 @@
 * VirtualBox
 * 5GB free RAM
 
+## Features
+* ETCD cluster
+* 3 master nodes
+* 3 worker nodes
+* 1 nfs server (for persistent volume)
+* Ingress controller (working)
+
 ## Setup
 
 ### Single script
